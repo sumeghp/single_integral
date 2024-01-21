@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <title>Integral Plot with D3.js</title>
+</head>
+<body>
+
+<div>
+    <label for="xFunction">Select x Function:</label>
+    <select id="xFunction">
+        <option value="x">x</option>
+        <option value="x^2" selected>x^2</option>
+        <option value="sin(x)">sin(x)</option>
+        <option value="cos(x)">cos(x)</option>
+    </select>
+    <br>
+    <label for="xDomain">X Domain:</label>
+    <input type="text" id="xDomain" placeholder="Enter x domain (e.g., 0,10)">
+    <label for="yDomain">Y Domain:</label>
+    <input type="text" id="yDomain" placeholder="Enter y domain (e.g., 0,100)">
+</div>
+
+<script>
+    // Default domain values
+    let xDomain = [0, 10];
+    let yDomain = [0, 100];
+
+    // Input boxes
+    const xDomainInput = document.getElementById('xDomain');
+    const yDomainInput = document.getElementById('yDomain');
+
+    // Select box for x function
+    const xFunctionSelect = document.getElementById('xFunction');
+
+    // Update plot on input change
+    xDomainInput.addEventListener('change', updatePlot);
+    yDomainInput.addEventListener('change', updatePlot);
+    xFunctionSelect.addEventListener('change', updatePlot);
+
+    // Initial plot
+    updatePlot();
+
+    function updatePlot() {
+        // Update domains from input values
+        xDomain = xDomainInput.value.split(',').map(parseFloat);
+        yDomain = yDomainInput.value.split(',').map(parseFloat);
+
+        // Get selected x function
+        const selectedXFunction = xFunctionSelect.value;
+
+        // Set up the SVG dimensions
+        const margin = { top: 20, right: 20, bottom: 30, left: 50 };
+        const width = 600 - margin.left - margin.right;
+        const height = 400 - margin.top - margin.bottom;
+
+        // Create SVG element
+        const svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+        // Update x and y scales
+        const x = d3.scaleLinear()
+            .domain(xDomain)
+            .range([0, width]);
+
+        const y = d3.scaleLinear()
+            .domain(yDomain)
+            .range([height, 0]);
+
+        // Update x and y axes
+        const xAxis = d3.axisBottom(x);
+        const yAxis = d3.axisLeft(y);
+
+        svg.append("g")
+            .attr("class", "x-axis")
+            .attr("transform", "translate(0," + height + ")")
+            .call(xAxis);
+
+        svg.append("g")
+            .attr("class", "y-axis")
+            .call(yAxis);
+
+        // Calculate and plot the integral curve based on the selected x function
+        const integralPath = d3.line()
+            .x(function (d) { return x(d.x); })
+            .y(function (d) { return y(d.y); });
+
+        const integralData = [];
+
+        for (let i = xDomain[0]; i <= xDomain[1]; i += 0.1) {
+            integralData.push({ x: i, y: integrate(getSelectedFunction(selectedXFunction), xDomain[0], i, 100) });
+        }
+
+        svg.append("path")
+            .data([integralData])
+            .attr("class", "line")
+            .attr("d", integralPath);
+    }
+
+    // Function to get the selected x function
+    function getSelectedFunction(selectedFunction) {
+        switch (selectedFunction) {
+            case 'x':
+                return function (x) { return x; };
+            case 'x^2':
+                return function (x) { return x ** 2; };
+            case 'sin(x)':
+                return function (x) { return Math.sin(x); };
+            case 'cos(x)':
+                return function (x) { return Math.cos(x); };
+            default:
+                return function (x) { return x; };
+        }
+    }
+
+    // Numerical integration function (Trapezoidal Rule)
+    function integrate(func, a, b, n) {
+        const h = (b - a) / n;
+        let result = 0.5 * (func(a) + func(b));
+
+        for (let i = 1; i < n; i++) {
+            result += func(a + i * h);
+        }
+
+        return h * result;
+    }
+
+</script>
+
+</body>
+</html>
